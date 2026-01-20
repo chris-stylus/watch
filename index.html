@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuardianWatch Pro Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+        .pulse-red { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red {
+            0% { transform: scale(1); background-color: rgba(239, 68, 68, 0.1); }
+            50% { transform: scale(1.02); background-color: rgba(239, 68, 68, 0.2); }
+            100% { transform: scale(1); background-color: rgba(239, 68, 68, 0.1); }
+        }
+        .main-grid { height: calc(100vh - 120px); }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .progress-ring { transform: rotate(-90deg); }
+    </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 h-screen flex flex-col">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex items-center justify-center transition-opacity duration-500">
+        <div class="flex flex-col items-center gap-4 text-center p-6">
+            <div id="loading-spinner" class="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+            <p id="loading-text" class="text-slate-500 font-semibold animate-pulse">GuardianWatch Cloud se connect ho raha hai...</p>
+            <div id="error-box" class="hidden mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl max-w-sm">
+                <p id="error-display" class="text-red-600 text-xs font-medium"></p>
+                <button onclick="window.location.reload()" class="mt-3 text-[10px] font-bold text-red-700 uppercase tracking-widest border-b border-red-200">Retry Karein</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Header -->
+    <nav class="h-[75px] flex items-center justify-between px-6 bg-white border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight">GuardianWatch <span class="text-indigo-600 text-sm">PRO</span></h1>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Live: <span id="patient-name" class="text-slate-700">John Doe</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm">
+                    <i data-lucide="battery" id="battery-icon" class="w-3.5 h-3.5 text-green-500"></i>
+                    <span id="battery-level" class="text-[10px] font-black text-slate-700">--%</span>
+                </div>
+                <div id="status-pill" class="px-3 py-1 rounded-lg flex items-center gap-2 font-black text-[9px] uppercase tracking-wider bg-green-50 text-green-600 border border-green-100">
+                    <span id="watch-status">System Secured</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 main-grid overflow-hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-4 lg:grid-rows-2 gap-4 h-full">
+            
+            <!-- Heart Rate Card -->
+            <div class="lg:col-span-2 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col relative overflow-hidden">
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Dhadkan (Heart Rate)</p>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-bold text-rose-500">LIVE PULSE</span>
+                        <div class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></div>
+                    </div>
+                </div>
+                <div class="flex items-baseline gap-2 mb-2">
+                    <span id="bpm-value" class="text-5xl font-black text-slate-800">0</span>
+                    <span class="text-slate-400 text-xs font-bold uppercase">BPM</span>
+                </div>
+                <div class="flex-1 min-h-0">
+                    <canvas id="heartRateChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Oxygen Card -->
+            <div class="lg:col-span-1 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Oxygen (SpO2)</p>
+                    <i data-lucide="droplets" class="w-4 h-4 text-sky-500"></i>
+                </div>
+                <div class="py-2">
+                    <span id="spo2-value" class="text-5xl font-black text-slate-800">0</span>
+                    <span class="text-slate-400 text-xs font-bold">%</span>
+                </div>
+                <div class="space-y-1">
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div id="spo2-bar" class="bg-sky-500 h-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Card -->
+            <div class="lg:col-span-1 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col relative">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Kadam (Activity)</p>
+                    <i data-lucide="footprints" class="w-4 h-4 text-orange-500"></i>
+                </div>
+                <div class="flex flex-1 items-center justify-around">
+                    <div class="relative w-20 h-20">
+                        <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" stroke="#f1f5f9" stroke-width="8" fill="transparent" />
+                            <circle id="step-ring" cx="50" cy="50" r="40" stroke="#f97316" stroke-width="8" fill="transparent" 
+                                stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" class="transition-all duration-1000"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span id="steps-value" class="text-lg font-black text-slate-800">0</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">Temp</span><br>
+                        <span id="temp-value" class="text-sm font-black text-slate-700">--°C</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Card -->
+            <div class="lg:col-span-1 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
+                <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mb-4">Quick Actions</p>
+                <div class="grid grid-cols-2 gap-3 flex-1">
+                    <button id="ping-btn" class="bg-indigo-50 text-indigo-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-indigo-100 transition">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span class="text-[9px] font-bold uppercase">Ping</span>
+                    </button>
+                    <button id="water-btn" class="bg-sky-50 text-sky-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-sky-100 transition">
+                        <i data-lucide="glass-water" class="w-5 h-5"></i>
+                        <span class="text-[9px] font-bold uppercase">Water</span>
+                    </button>
+                </div>
+                <button id="sos-btn" class="w-full h-14 mt-4 bg-rose-600 text-white rounded-2xl flex items-center justify-center gap-3 hover:bg-rose-700 transition shadow-lg shadow-rose-100">
+                    <i data-lucide="phone" class="w-5 h-5 animate-pulse"></i>
+                    <span class="font-black uppercase text-xs tracking-widest">Call Watch</span>
+                </button>
+            </div>
+
+            <!-- Alerts & Meds -->
+            <div class="lg:col-span-2 grid grid-cols-2 gap-4">
+                <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden">
+                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mb-3">Alerts History</p>
+                    <div id="alerts-list" class="flex-1 overflow-y-auto space-y-2 hide-scroll text-[10px] font-bold text-slate-400">
+                        Pichle incidents yahan dikhenge
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mb-3">Dawai (Medication)</p>
+                    <form id="med-form" class="space-y-2">
+                        <input type="text" id="med-name" placeholder="Pill Name" required class="w-full p-2 text-xs rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-200 outline-none">
+                        <div class="flex gap-2">
+                            <input type="time" id="med-time" required class="flex-1 p-2 text-xs rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-200 outline-none">
+                            <button type="submit" id="sync-btn" class="bg-slate-900 text-white px-3 rounded-xl hover:bg-black transition"><i data-lucide="send" class="w-3 h-3"></i></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Hydration Card -->
+            <div class="lg:col-span-1 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
+                <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Pani (Water) Intake</p>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-2xl font-black text-slate-800">1.2<span class="text-xs text-slate-400 ml-1">Ltrs</span></span>
+                    <span class="text-[9px] font-black text-sky-600 bg-sky-50 px-2 py-1 rounded-lg">Target: 2.5L</span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="h-[45px] px-8 flex items-center justify-between text-[9px] text-slate-300 font-black uppercase tracking-[0.3em] bg-white border-t border-slate-50">
+        <span>Link: watch-1ff3d</span>
+        <span class="text-slate-400">Project ID: <span id="display-appid">---</span></span>
+        <span>Guardian v2.1.0</span>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, collection, setDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration (User provided)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4uzq-K0ylVdzLGI2gD4iy9wbialmJZ0c",
+            authDomain: "watch-1ff3d.firebaseapp.com",
+            databaseURL: "https://watch-1ff3d-default-rtdb.firebaseio.com",
+            projectId: "watch-1ff3d",
+            storageBucket: "watch-1ff3d.firebasestorage.app",
+            messagingSenderId: "1094522997554",
+            appId: "1:1094522997554:web:8833eb4bba862adb94a52b",
+            measurementId: "G-4P41ZBKFSH"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = firebaseConfig.projectId;
+
+        document.getElementById('display-appid').textContent = appId;
+        lucide.createIcons();
+
+        // Chart Init
+        const ctx = document.getElementById('heartRateChart').getContext('2d');
+        const heartRateChart = new Chart(ctx, {
+            type: 'line',
+            data: { 
+                labels: Array(20).fill(''), 
+                datasets: [{ 
+                    data: Array(20).fill(72), 
+                    borderColor: '#E11D48', 
+                    borderWidth: 3, 
+                    tension: 0.4, 
+                    pointRadius: 0, 
+                    fill: true, 
+                    backgroundColor: 'rgba(225, 29, 72, 0.03)' 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } }, 
+                scales: { x: { display: false }, y: { min: 40, max: 150, display: false } } 
+            }
+        });
+
+        // Rule 3: Auth Before Queries
+        const initAuth = async () => {
+            try {
+                const userCredential = await signInAnonymously(auth);
+                console.log("Logged in as:", userCredential.user.uid);
+            } catch (err) {
+                console.error("Auth Error:", err);
+                showPermissionError("Anonymous Auth failed. Firebase Console mein 'Anonymous Sign-in' enable karein.");
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('loading-overlay').classList.add('opacity-0');
+                setTimeout(() => document.getElementById('loading-overlay').classList.add('hidden'), 500);
+                setupRealtime();
+            } else {
+                initAuth();
+            }
+        });
+
+        function setupRealtime() {
+            if (!auth.currentUser) return;
+
+            // Rule 1: Metrics Path (6 segments for doc)
+            const healthRef = doc(db, 'artifacts', appId, 'public', 'data', 'metrics', 'health');
+            const unsubHealth = onSnapshot(healthRef, (snap) => {
+                if (snap.exists()) {
+                    const d = snap.data();
+                    document.getElementById('bpm-value').textContent = Math.round(d.bpm || 0);
+                    document.getElementById('spo2-value').textContent = (d.spo2 || 0).toFixed(1);
+                    document.getElementById('spo2-bar').style.width = (d.spo2 || 0) + '%';
+                    document.getElementById('battery-level').textContent = (d.battery || 0) + '%';
+                    document.getElementById('steps-value').textContent = (d.steps || 0).toLocaleString();
+                    document.getElementById('temp-value').textContent = (d.temp || 0) + '°C';
+
+                    heartRateChart.data.datasets[0].data.push(d.bpm || 70);
+                    heartRateChart.data.datasets[0].data.shift();
+                    heartRateChart.update('none');
+                }
+            }, (error) => {
+                console.error("Health Snapshot Error:", error);
+                if (error.code === 'permission-denied') {
+                    showPermissionError("Health data read permission denied. Firestore Rules check karein.");
+                }
+            });
+
+            // Rule 1: Alerts Path (5 segments for collection)
+            const alertsRef = collection(db, 'artifacts', appId, 'public', 'data', 'alerts');
+            const unsubAlerts = onSnapshot(alertsRef, (snap) => {
+                const alerts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (alerts.length > 0) {
+                    // Rule 2: Manual Memory Sort
+                    alerts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                    
+                    document.getElementById('alerts-list').innerHTML = alerts.slice(0, 5).map(a => `
+                        <div class="p-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                            <span class="uppercase tracking-tighter text-[9px] font-black text-slate-600">${a.type || 'Alert Triggered'}</span>
+                        </div>
+                    `).join('');
+                }
+            }, (error) => {
+                console.error("Alerts Snapshot Error:", error);
+            });
+        }
+
+        function showPermissionError(msg) {
+            document.getElementById('loading-overlay').classList.remove('hidden', 'opacity-0');
+            document.getElementById('loading-spinner').classList.add('hidden');
+            document.getElementById('loading-text').classList.add('hidden');
+            document.getElementById('error-box').classList.remove('hidden');
+            document.getElementById('error-display').innerHTML = `<b>Error:</b> ${msg}<br><br>Firebase Console > Firestore > Rules mein jaakar rules ko 'allow read, write: if request.auth != null;' par set karein.`;
+        }
+
+        document.getElementById('med-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!auth.currentUser) return;
+
+            const name = document.getElementById('med-name').value;
+            const time = document.getElementById('med-time').value;
+            const btn = document.getElementById('sync-btn');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>';
+            lucide.createIcons();
+
+            try {
+                // Rule 1: 6 segments for doc()
+                const medDoc = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'medication');
+                await setDoc(medDoc, { 
+                    name, 
+                    time, 
+                    timestamp: Date.now(),
+                    syncStatus: 'synced'
+                });
+                alert("Watch ke liye dawai sync ho gayi!");
+            } catch (err) { 
+                console.error("SetDoc Error:", err);
+                alert("Permission Denied: Data save nahi ho paya.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="send" class="w-3 h-3"></i>';
+                lucide.createIcons();
+            }
+        });
+
+        // Event listeners
+        document.getElementById('ping-btn').onclick = () => alert("Watch vibrate ho rahi hai...");
+        document.getElementById('water-btn').onclick = () => alert("Pani peene ka reminder watch pe bhej diya gaya!");
+    </script>
+</body>
+</html>
