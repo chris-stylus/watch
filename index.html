@@ -3,192 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GuardianWatch Pro Dashboard</title>
+    <title>ElderGuard Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
-        .pulse-red { animation: pulse-red 2s infinite; }
-        @keyframes pulse-red {
-            0% { transform: scale(1); background-color: rgba(239, 68, 68, 0.1); }
-            50% { transform: scale(1.02); background-color: rgba(239, 68, 68, 0.2); }
-            100% { transform: scale(1); background-color: rgba(239, 68, 68, 0.1); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .alert-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
         }
-        .main-grid { height: calc(100vh - 120px); }
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .progress-ring { transform: rotate(-90deg); }
     </style>
 </head>
-<body class="bg-[#F8FAFC] text-slate-900 h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-900">
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex items-center justify-center transition-opacity duration-500">
-        <div class="flex flex-col items-center gap-4 text-center p-6">
-            <div id="loading-spinner" class="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p id="loading-text" class="text-slate-500 font-semibold animate-pulse">GuardianWatch Cloud se connect ho raha hai...</p>
-            <div id="error-box" class="hidden mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl max-w-sm">
-                <p id="error-display" class="text-red-600 text-xs font-medium"></p>
-                <button onclick="window.location.reload()" class="mt-3 text-[10px] font-bold text-red-700 uppercase tracking-widest border-b border-red-200">Retry Karein</button>
-            </div>
-        </div>
+    <div id="notification" class="fixed top-4 right-4 z-50 transform translate-x-full transition-transform duration-300 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3">
+        <i data-lucide="check-circle"></i>
+        <span id="notification-text">Action completed!</span>
     </div>
 
-    <!-- Top Header -->
-    <nav class="h-[75px] flex items-center justify-between px-6 bg-white border-b border-slate-100 shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                <i data-lucide="shield-check" class="w-5 h-5"></i>
-            </div>
+    <div class="min-h-screen p-4 md:p-8">
+        <!-- Header -->
+        <header class="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h1 class="text-lg font-bold tracking-tight">GuardianWatch <span class="text-indigo-600 text-sm">PRO</span></h1>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Live: <span id="patient-name" class="text-slate-700">John Doe</span></p>
+                <h1 class="text-3xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="activity" class="text-blue-600"></i> ElderGuard Dashboard
+                </h1>
+                <p class="text-slate-500">Real-time health & safety monitoring</p>
+            </div>
+            <div class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 w-full md:w-auto">
+                <div class="p-2 bg-slate-100 rounded-full">
+                    <i data-lucide="user" class="text-slate-500"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold">John Doe (Patient)</p>
+                    <p class="text-xs text-slate-400">ID: WATCH-789 | Emergency: +1 234 567</p>
                 </div>
             </div>
-        </div>
-        
-        <div class="flex items-center gap-2">
-            <div class="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-lg shadow-sm">
-                    <i data-lucide="battery" id="battery-icon" class="w-3.5 h-3.5 text-green-500"></i>
-                    <span id="battery-level" class="text-[10px] font-black text-slate-700">--%</span>
-                </div>
-                <div id="status-pill" class="px-3 py-1 rounded-lg flex items-center gap-2 font-black text-[9px] uppercase tracking-wider bg-green-50 text-green-600 border border-green-100">
-                    <span id="watch-status">System Secured</span>
-                </div>
-            </div>
-        </div>
-    </nav>
+        </header>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 p-4 main-grid overflow-hidden">
-        <div class="grid grid-cols-1 lg:grid-cols-4 lg:grid-rows-2 gap-4 h-full">
+        <main class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <!-- Heart Rate Card -->
-            <div class="lg:col-span-2 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col relative overflow-hidden">
-                <div class="flex items-center justify-between mb-1">
-                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Dhadkan (Heart Rate)</p>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[9px] font-bold text-rose-500">LIVE PULSE</span>
-                        <div class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></div>
+            <!-- Health Metrics -->
+            <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Heart Rate Card -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border-b-4 border-red-500">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-red-50 rounded-xl text-red-600">
+                            <i data-lucide="heart"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Heart Rate</span>
                     </div>
-                </div>
-                <div class="flex items-baseline gap-2 mb-2">
-                    <span id="bpm-value" class="text-5xl font-black text-slate-800">0</span>
-                    <span class="text-slate-400 text-xs font-bold uppercase">BPM</span>
-                </div>
-                <div class="flex-1 min-h-0">
-                    <canvas id="heartRateChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Oxygen Card -->
-            <div class="lg:col-span-1 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div class="flex items-center justify-between">
-                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Oxygen (SpO2)</p>
-                    <i data-lucide="droplets" class="w-4 h-4 text-sky-500"></i>
-                </div>
-                <div class="py-2">
-                    <span id="spo2-value" class="text-5xl font-black text-slate-800">0</span>
-                    <span class="text-slate-400 text-xs font-bold">%</span>
-                </div>
-                <div class="space-y-1">
-                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div id="spo2-bar" class="bg-sky-500 h-full transition-all duration-1000" style="width: 0%"></div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="heartRate" class="text-5xl font-black text-slate-800">--</span>
+                        <span class="text-slate-400 font-bold uppercase text-xs">bpm</span>
                     </div>
+                    <p class="mt-3 text-xs text-emerald-500 font-bold flex items-center gap-1">
+                        <i data-lucide="trending-up" class="w-3 h-3"></i> Stable
+                    </p>
                 </div>
-            </div>
 
-            <!-- Activity Card -->
-            <div class="lg:col-span-1 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col relative">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Kadam (Activity)</p>
-                    <i data-lucide="footprints" class="w-4 h-4 text-orange-500"></i>
+                <!-- Oxygen Card -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border-b-4 border-blue-500">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-blue-50 rounded-xl text-blue-600">
+                            <i data-lucide="wind"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Blood Oxygen</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="spo2" class="text-5xl font-black text-slate-800">--</span>
+                        <span class="text-slate-400 font-bold uppercase text-xs">% SpO2</span>
+                    </div>
+                    <p class="mt-3 text-xs text-emerald-500 font-bold flex items-center gap-1">
+                        <i data-lucide="check" class="w-3 h-3"></i> Normal
+                    </p>
                 </div>
-                <div class="flex flex-1 items-center justify-around">
-                    <div class="relative w-20 h-20">
-                        <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="40" stroke="#f1f5f9" stroke-width="8" fill="transparent" />
-                            <circle id="step-ring" cx="50" cy="50" r="40" stroke="#f97316" stroke-width="8" fill="transparent" 
-                                stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" class="transition-all duration-1000"/>
-                        </svg>
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <span id="steps-value" class="text-lg font-black text-slate-800">0</span>
+
+                <!-- Activity Banner -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm col-span-full flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-100">
+                    <div class="flex items-center gap-4">
+                        <div id="activityIcon" class="p-4 bg-slate-50 rounded-2xl text-slate-600">
+                            <i data-lucide="zap"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">User Status</p>
+                            <p id="activity" class="text-2xl font-black text-slate-800 capitalize">Loading...</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase">Temp</span><br>
-                        <span id="temp-value" class="text-sm font-black text-slate-700">--°C</span>
+                    <div class="text-center sm:text-right border-t sm:border-t-0 sm:border-l border-slate-100 pt-4 sm:pt-0 sm:pl-8">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last Updated</p>
+                        <p id="lastSeen" class="text-sm font-semibold text-slate-600">Waiting for sync...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Actions Card -->
-            <div class="lg:col-span-1 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
-                <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mb-4">Quick Actions</p>
-                <div class="grid grid-cols-2 gap-3 flex-1">
-                    <button id="ping-btn" class="bg-indigo-50 text-indigo-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-indigo-100 transition">
-                        <i data-lucide="bell" class="w-5 h-5"></i>
-                        <span class="text-[9px] font-bold uppercase">Ping</span>
-                    </button>
-                    <button id="water-btn" class="bg-sky-50 text-sky-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-sky-100 transition">
-                        <i data-lucide="glass-water" class="w-5 h-5"></i>
-                        <span class="text-[9px] font-bold uppercase">Water</span>
-                    </button>
+            <!-- Alerts Panel -->
+            <div class="bg-slate-900 text-white p-6 rounded-3xl shadow-2xl flex flex-col">
+                <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="bell" class="text-yellow-400"></i> Emergency Feed
+                </h2>
+                <div id="alertsContainer" class="space-y-4 flex-1 overflow-y-auto max-h-[400px] pr-2">
+                    <!-- Alerts will be injected here -->
+                    <div class="text-slate-500 text-sm text-center py-10">No recent alerts recorded.</div>
                 </div>
-                <button id="sos-btn" class="w-full h-14 mt-4 bg-rose-600 text-white rounded-2xl flex items-center justify-center gap-3 hover:bg-rose-700 transition shadow-lg shadow-rose-100">
-                    <i data-lucide="phone" class="w-5 h-5 animate-pulse"></i>
-                    <span class="font-black uppercase text-xs tracking-widest">Call Watch</span>
-                </button>
             </div>
 
-            <!-- Alerts & Meds -->
-            <div class="lg:col-span-2 grid grid-cols-2 gap-4">
-                <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden">
-                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mb-3">Alerts History</p>
-                    <div id="alerts-list" class="flex-1 overflow-y-auto space-y-2 hide-scroll text-[10px] font-bold text-slate-400">
-                        Pichle incidents yahan dikhenge
+            <!-- Medication Management -->
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-3 text-slate-800">
+                    <i data-lucide="clock" class="text-indigo-600 p-2 bg-indigo-50 rounded-lg"></i> Medicine Reminder
+                </h2>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Drug Name</label>
+                        <input type="text" id="medName" placeholder="e.g. Aspirin 10mg" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Time Slot</label>
+                        <input type="time" id="medTime" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition">
+                    </div>
+                    <button onclick="triggerMedication()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="send" class="w-4 h-4"></i> Send to Watch
+                    </button>
+                </div>
+            </div>
+
+            <!-- Configuration -->
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 md:col-span-2">
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-3 text-slate-800">
+                    <i data-lucide="settings" class="text-slate-400 p-2 bg-slate-50 rounded-lg"></i> Safety Thresholds
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Min Heart Rate</label>
+                        <input type="number" value="50" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Max Heart Rate</label>
+                        <input type="number" value="120" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Min Oxygen %</label>
+                        <input type="number" value="92" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                    </div>
+                    <div class="sm:col-span-3">
+                        <button onclick="showToast('Settings updated (Simulation)')" class="bg-slate-800 hover:bg-black text-white px-8 py-3 rounded-xl text-sm font-bold transition">Update Config</button>
                     </div>
                 </div>
-                <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
-                    <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mb-3">Dawai (Medication)</p>
-                    <form id="med-form" class="space-y-2">
-                        <input type="text" id="med-name" placeholder="Pill Name" required class="w-full p-2 text-xs rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-200 outline-none">
-                        <div class="flex gap-2">
-                            <input type="time" id="med-time" required class="flex-1 p-2 text-xs rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-200 outline-none">
-                            <button type="submit" id="sync-btn" class="bg-slate-900 text-white px-3 rounded-xl hover:bg-black transition"><i data-lucide="send" class="w-3 h-3"></i></button>
-                        </div>
-                    </form>
-                </div>
             </div>
+        </main>
+    </div>
 
-            <!-- Hydration Card -->
-            <div class="lg:col-span-1 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
-                <p class="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Pani (Water) Intake</p>
-                <div class="flex justify-between items-center mt-2">
-                    <span class="text-2xl font-black text-slate-800">1.2<span class="text-xs text-slate-400 ml-1">Ltrs</span></span>
-                    <span class="text-[9px] font-black text-sky-600 bg-sky-50 px-2 py-1 rounded-lg">Target: 2.5L</span>
-                </div>
-            </div>
-
-        </div>
-    </main>
-
-    <footer class="h-[45px] px-8 flex items-center justify-between text-[9px] text-slate-300 font-black uppercase tracking-[0.3em] bg-white border-t border-slate-50">
-        <span>Link: watch-1ff3d</span>
-        <span class="text-slate-400">Project ID: <span id="display-appid">---</span></span>
-        <span>Guardian v2.1.0</span>
-    </footer>
-
+    <!-- Firebase SDK Modular -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, collection, setDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getDatabase, ref, onValue, set, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-        // Firebase Configuration (User provided)
         const firebaseConfig = {
             apiKey: "AIzaSyD4uzq-K0ylVdzLGI2gD4iy9wbialmJZ0c",
             authDomain: "watch-1ff3d.firebaseapp.com",
@@ -201,147 +174,80 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = firebaseConfig.projectId;
+        const db = getDatabase(app);
 
-        document.getElementById('display-appid').textContent = appId;
-        lucide.createIcons();
+        // UI Element References
+        const elements = {
+            heartRate: document.getElementById('heartRate'),
+            spo2: document.getElementById('spo2'),
+            activity: document.getElementById('activity'),
+            lastSeen: document.getElementById('lastSeen'),
+            alertsContainer: document.getElementById('alertsContainer')
+        };
 
-        // Chart Init
-        const ctx = document.getElementById('heartRateChart').getContext('2d');
-        const heartRateChart = new Chart(ctx, {
-            type: 'line',
-            data: { 
-                labels: Array(20).fill(''), 
-                datasets: [{ 
-                    data: Array(20).fill(72), 
-                    borderColor: '#E11D48', 
-                    borderWidth: 3, 
-                    tension: 0.4, 
-                    pointRadius: 0, 
-                    fill: true, 
-                    backgroundColor: 'rgba(225, 29, 72, 0.03)' 
-                }] 
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false } }, 
-                scales: { x: { display: false }, y: { min: 40, max: 150, display: false } } 
+        // Real-time Health Listener
+        onValue(ref(db, 'live_data'), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                elements.heartRate.innerText = data.heartRate || '--';
+                elements.spo2.innerText = data.spo2 || '--';
+                elements.activity.innerText = data.activity || 'Idle';
+                elements.lastSeen.innerText = data.lastSeen || 'Syncing...';
             }
         });
 
-        // Rule 3: Auth Before Queries
-        const initAuth = async () => {
+        // Alerts Listener
+        onValue(ref(db, 'alerts'), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const alertList = Object.values(data).reverse().slice(0, 5);
+                
+                elements.alertsContainer.innerHTML = alertList.map(alert => `
+                    <div class="bg-slate-800 p-4 rounded-2xl border-l-4 border-red-500 alert-pulse shadow-lg">
+                        <p class="font-black text-red-500 text-xs uppercase mb-1 tracking-tighter">Emergency Triggered</p>
+                        <p class="font-bold text-white">${alert.type}</p>
+                        <p class="text-[10px] text-slate-500 mt-2">${alert.timestamp}</p>
+                    </div>
+                `).join('');
+            }
+        });
+
+        // Global functions exposed for the buttons
+        window.triggerMedication = async () => {
+            const medName = document.getElementById('medName').value;
+            const medTime = document.getElementById('medTime').value;
+
+            if (!medName || !medTime) {
+                alert("Please enter medicine details.");
+                return;
+            }
+
             try {
-                const userCredential = await signInAnonymously(auth);
-                console.log("Logged in as:", userCredential.user.uid);
-            } catch (err) {
-                console.error("Auth Error:", err);
-                showPermissionError("Anonymous Auth failed. Firebase Console mein 'Anonymous Sign-in' enable karein.");
+                // Set the flag for the watch to ring
+                await set(ref(db, 'med_trigger'), true);
+                // Log the history
+                await push(ref(db, 'med_history'), {
+                    name: medName,
+                    time: medTime,
+                    triggeredAt: new Date().toLocaleTimeString()
+                });
+                showToast(`Sent reminder for ${medName}`);
+            } catch (error) {
+                console.error("Firebase Error:", error);
             }
         };
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('loading-overlay').classList.add('opacity-0');
-                setTimeout(() => document.getElementById('loading-overlay').classList.add('hidden'), 500);
-                setupRealtime();
-            } else {
-                initAuth();
-            }
-        });
+        window.showToast = (msg) => {
+            const toast = document.getElementById('notification');
+            document.getElementById('notification-text').innerText = msg;
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        };
 
-        function setupRealtime() {
-            if (!auth.currentUser) return;
-
-            // Rule 1: Metrics Path (6 segments for doc)
-            const healthRef = doc(db, 'artifacts', appId, 'public', 'data', 'metrics', 'health');
-            const unsubHealth = onSnapshot(healthRef, (snap) => {
-                if (snap.exists()) {
-                    const d = snap.data();
-                    document.getElementById('bpm-value').textContent = Math.round(d.bpm || 0);
-                    document.getElementById('spo2-value').textContent = (d.spo2 || 0).toFixed(1);
-                    document.getElementById('spo2-bar').style.width = (d.spo2 || 0) + '%';
-                    document.getElementById('battery-level').textContent = (d.battery || 0) + '%';
-                    document.getElementById('steps-value').textContent = (d.steps || 0).toLocaleString();
-                    document.getElementById('temp-value').textContent = (d.temp || 0) + '°C';
-
-                    heartRateChart.data.datasets[0].data.push(d.bpm || 70);
-                    heartRateChart.data.datasets[0].data.shift();
-                    heartRateChart.update('none');
-                }
-            }, (error) => {
-                console.error("Health Snapshot Error:", error);
-                if (error.code === 'permission-denied') {
-                    showPermissionError("Health data read permission denied. Firestore Rules check karein.");
-                }
-            });
-
-            // Rule 1: Alerts Path (5 segments for collection)
-            const alertsRef = collection(db, 'artifacts', appId, 'public', 'data', 'alerts');
-            const unsubAlerts = onSnapshot(alertsRef, (snap) => {
-                const alerts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (alerts.length > 0) {
-                    // Rule 2: Manual Memory Sort
-                    alerts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                    
-                    document.getElementById('alerts-list').innerHTML = alerts.slice(0, 5).map(a => `
-                        <div class="p-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
-                            <div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
-                            <span class="uppercase tracking-tighter text-[9px] font-black text-slate-600">${a.type || 'Alert Triggered'}</span>
-                        </div>
-                    `).join('');
-                }
-            }, (error) => {
-                console.error("Alerts Snapshot Error:", error);
-            });
-        }
-
-        function showPermissionError(msg) {
-            document.getElementById('loading-overlay').classList.remove('hidden', 'opacity-0');
-            document.getElementById('loading-spinner').classList.add('hidden');
-            document.getElementById('loading-text').classList.add('hidden');
-            document.getElementById('error-box').classList.remove('hidden');
-            document.getElementById('error-display').innerHTML = `<b>Error:</b> ${msg}<br><br>Firebase Console > Firestore > Rules mein jaakar rules ko 'allow read, write: if request.auth != null;' par set karein.`;
-        }
-
-        document.getElementById('med-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!auth.currentUser) return;
-
-            const name = document.getElementById('med-name').value;
-            const time = document.getElementById('med-time').value;
-            const btn = document.getElementById('sync-btn');
-            
-            btn.disabled = true;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>';
-            lucide.createIcons();
-
-            try {
-                // Rule 1: 6 segments for doc()
-                const medDoc = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'medication');
-                await setDoc(medDoc, { 
-                    name, 
-                    time, 
-                    timestamp: Date.now(),
-                    syncStatus: 'synced'
-                });
-                alert("Watch ke liye dawai sync ho gayi!");
-            } catch (err) { 
-                console.error("SetDoc Error:", err);
-                alert("Permission Denied: Data save nahi ho paya.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="send" class="w-3 h-3"></i>';
-                lucide.createIcons();
-            }
-        });
-
-        // Event listeners
-        document.getElementById('ping-btn').onclick = () => alert("Watch vibrate ho rahi hai...");
-        document.getElementById('water-btn').onclick = () => alert("Pani peene ka reminder watch pe bhej diya gaya!");
+        // Initialize Lucide icons
+        lucide.createIcons();
     </script>
 </body>
 </html>
